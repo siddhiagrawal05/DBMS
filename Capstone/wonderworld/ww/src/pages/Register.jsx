@@ -1,0 +1,50 @@
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../auth';
+import GoogleLogin from '../components/GoogleLogin';
+
+export default function Register() {
+  const [f, setF] = useState({ name: '', email: '', phone: '', password: '', confirm: '' });
+  const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [gStep, setGStep] = useState(false);
+  const { register } = useAuth();
+  const nav = useNavigate();
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setErr('');
+    if (!/^\d{10}$/.test(f.phone)) return setErr('Phone number must be 10 digits.');
+    if (f.password.length < 6) return setErr('Password must be at least 6 characters.');
+    if (f.password !== f.confirm) return setErr('Passwords do not match.');
+    setBusy(true);
+    try {
+      await register({ name: f.name.trim(), email: f.email.trim(), phone: f.phone, password: f.password });
+      nav('/tickets');
+    } catch (x) {
+      setErr(x.message);
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="auth">
+      <div className="auth-box">
+        <h2>Create Account</h2>
+        <p className="mut">Join WonderWorld and book your fun day.</p>
+        <GoogleLogin text="signup_with" done={() => nav('/tickets')} onPending={setGStep} />
+        <form onSubmit={submit} style={{ display: gStep ? 'none' : 'block' }}>
+          <label>Full Name<input required value={f.name} onChange={set('name')} /></label>
+          <label>Email<input type="email" required autoComplete="email" value={f.email} onChange={set('email')} /></label>
+          <label>Phone<input required inputMode="numeric" maxLength="10" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value.replace(/\D/g, '') })} placeholder="10 digit number" /></label>
+          <label>Password<input type="password" required autoComplete="new-password" value={f.password} onChange={set('password')} /></label>
+          <label>Confirm Password<input type="password" required autoComplete="new-password" value={f.confirm} onChange={set('confirm')} /></label>
+          {err && <p className="err">{err}</p>}
+          <button className="btn full" disabled={busy}>{busy ? 'Creating account...' : 'Create Account'}</button>
+          <p className="small center-t gap-top">Already have an account? <Link to="/login">Login</Link></p>
+        </form>
+      </div>
+    </div>
+  );
+}
